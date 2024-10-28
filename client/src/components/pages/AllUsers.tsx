@@ -10,16 +10,23 @@ width: 200px;
 }
 `;
 
-const Conversations = () => {
+const AllUsers = () => {
 
   const { allUsers } = useContext(UsersContext) as UsersContextTypes;
   // console.log(allUsers);
 
   return (
     <StyledSection>
-        <h2>Conversations</h2>
+        <h2>user list</h2>
+        {
+          allUsers.length ?
+            allUsers.map(user =>
+              <UserCard key={user._id} data={user} />
+            ) :
+            <p>Loading...</p>
+        }
     </StyledSection>
   );
 }
 
-export default Conversations;
+export default AllUsers;
