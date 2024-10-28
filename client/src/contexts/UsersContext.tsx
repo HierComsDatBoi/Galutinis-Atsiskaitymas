@@ -86,6 +86,7 @@ const UsersProvider = ({ children }: ChildProp) => {
       else { // success
         const data = await res.json();
         setUserLogin(data);
+        localStorage.setItem('userLogin', JSON.stringify(data));
         return { success: 'Login successfull, redirecting...' }
       }
     }
@@ -97,6 +98,7 @@ const UsersProvider = ({ children }: ChildProp) => {
 
   const logOut = () => {
     setUserLogin(null);
+    localStorage.removeItem('userLogin');
   }
 
   const specificUser = (id: UserInfoType['_id']): UserInfoType | undefined => {
