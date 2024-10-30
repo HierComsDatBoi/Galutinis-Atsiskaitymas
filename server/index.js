@@ -45,7 +45,7 @@ const findUsername = async (req, res, next) => {
   try {
     const checkExisting = await client.db('ChatApp').collection('users').findOne({ username: req.body.username });
     if (checkExisting) {
-      res.status(409).send({ errorMessage: 'Username already exists' });
+      res.status(409).send({ error: 'Username already exists' });
     }
     else { next(); }
   }
@@ -93,3 +93,29 @@ app.post('/users/login', async (req, res) => {
   catch (err) { res.status(500).send({ error: err }); }
   finally { client?.close(); }
 });
+
+// user info editas
+app.patch('/users/:id', async (req, res) => {
+  const client = await MongoClient.connect(DB_CONNECTION);
+  const { id } = req.params;
+  const updateFields = { ...req.body };
+
+  if (updateFields.password) {
+    updateFields.password = bcrypt.hashSync(updateFields.password, 10);
+  }
+
+  try {
+    const result = await client.db('ChatApp').collection('users').updateOne({ _id: id }, { $set: updateFields });
+
+    if (result.matchedCount === 0) {
+      res.status(404).send({ error: 'User not found' });
+    } else {
+      res.send(updateFields);
+    }
+  } catch (err) {
+    res.status(500).send({ error: 'Failed to update profile' });
+  } finally {
+    client?.close();
+  }
+});
+
