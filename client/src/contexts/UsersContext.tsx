@@ -21,7 +21,9 @@ export type UsersContextTypes = {
   logInUser: (userLoginInfo: Pick<UserInfoType, "username" | "password">) => Promise<ErrorReturn>,
   logOut: () => void,
   userLogin: UserInfoType | null,
-  specificUser: (id: UserInfoType["_id"]) => UserInfoType | undefined
+  specificUser: (id: UserInfoType["_id"]) => UserInfoType | undefined,
+  passwordUpdate: (formData: Pick<UserInfoType, "password">) => Promise<ErrorReturn>,
+  infoUpdate: (formData: Pick<UserInfoType, "username" | "profileImg">) => Promise<ErrorReturn>
 }
 
 const reducer = (state: UserInfoType[], action: ReducerTypes): UserInfoType[] => {
@@ -80,8 +82,8 @@ const UsersProvider = ({ children }: ChildProp) => {
         body: JSON.stringify(userLoginInfo)
       });
       if (res.status === 401) { // error
-        const error = await res.json();
-        return error;
+        const err = await res.json();
+        return err;
       }
       else { // success
         const data = await res.json();
@@ -95,6 +97,58 @@ const UsersProvider = ({ children }: ChildProp) => {
       return { error: 'Login error, try again later' };
     }
   }
+
+  const passwordUpdate = async (formData: Pick<UserInfoType, "password">) => {
+    try {
+      const res = await fetch(`http://localhost:5500/users/${userLogin?._id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          password: formData.password
+        })
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        return { error: result.error || 'Password update failed' };
+      } else {
+        return { success: 'Password updated successfully' };
+      }
+    } catch (err) {
+      console.error(err);
+      return { error: 'An error occurred while updating the password' };
+    }
+  }
+
+  const infoUpdate = async (formData: Pick<UserInfoType, "username" | "profileImg">) => {
+    try {
+      const res = await fetch(`http://localhost:5500/users/${userLogin?._id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          profileImg: formData.profileImg,
+        })
+      });
+  
+      const result = await res.json();
+  
+      if (!res.ok) {
+        return { error: result.error || 'Profile update failed' };
+      } else {
+        return { success: 'Profile updated successfully' };
+      }
+    } catch (error) {
+      console.error(error);
+      return { error: 'An error occurred while updating the profile' };
+    }
+  };
+  
 
   const logOut = () => {
     setUserLogin(null);
@@ -123,7 +177,9 @@ const UsersProvider = ({ children }: ChildProp) => {
         logInUser,
         createUser,
         userLogin,
-        specificUser
+        specificUser,
+        passwordUpdate,
+        infoUpdate
       }}
     >
       {children}
