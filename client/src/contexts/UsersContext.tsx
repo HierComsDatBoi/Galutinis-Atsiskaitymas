@@ -20,10 +20,10 @@ export type UsersContextTypes = {
   createUser: (user: Omit<UserInfoType, "_id">) => Promise<ErrorReturn>,
   logInUser: (userLoginInfo: Pick<UserInfoType, "username" | "password">) => Promise<ErrorReturn>,
   logOut: () => void,
-  userLogin: UserInfoType | null,
+  userLogin: UserInfoType | undefined,
   specificUser: (id: UserInfoType["_id"]) => UserInfoType | undefined,
-  passwordUpdate: (formData: Pick<UserInfoType, "password">) => Promise<ErrorReturn>,
-  infoUpdate: (formData: Pick<UserInfoType, "username" | "profileImg">) => Promise<ErrorReturn>
+  passwordUpdate: (formData: {password?: string | null}) => Promise<ErrorReturn>,
+  infoUpdate: (formData: { profileImg?: string | null; username?: string | null }) => Promise<ErrorReturn>
 }
 
 const reducer = (state: UserInfoType[], action: ReducerTypes): UserInfoType[] => {
@@ -41,7 +41,7 @@ const UsersContext = createContext<UsersContextTypes | undefined>(undefined);
 const UsersProvider = ({ children }: ChildProp) => {
 
   const [allUsers, dispatch] = useReducer(reducer, []);
-  const [userLogin, setUserLogin] = useState<null | UserInfoType>(null);
+  const [userLogin, setUserLogin] = useState<undefined | UserInfoType>(undefined);
 
   const createUser = async (user: Omit<UserInfoType, "_id">): Promise<ErrorReturn> => {
     try {
@@ -98,7 +98,7 @@ const UsersProvider = ({ children }: ChildProp) => {
     }
   }
 
-  const passwordUpdate = async (formData: Pick<UserInfoType, "password">) => {
+  const passwordUpdate = async (formData: {password?: string | null}) => {
     try {
       const res = await fetch(`http://localhost:5500/users/${userLogin?._id}`, {
         method: 'PATCH',
@@ -123,7 +123,7 @@ const UsersProvider = ({ children }: ChildProp) => {
     }
   }
 
-  const infoUpdate = async (formData: Pick<UserInfoType, "username" | "profileImg">) => {
+  const infoUpdate = async (formData: { profileImg?: string | null; username?: string | null }) => {
     try {
       const res = await fetch(`http://localhost:5500/users/${userLogin?._id}`, {
         method: 'PATCH',
@@ -131,8 +131,8 @@ const UsersProvider = ({ children }: ChildProp) => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          username: formData.username,
-          profileImg: formData.profileImg,
+          username: formData?.username,
+          profileImg: formData?.profileImg,
         })
       });
   
@@ -151,7 +151,7 @@ const UsersProvider = ({ children }: ChildProp) => {
   
 
   const logOut = () => {
-    setUserLogin(null);
+    setUserLogin(undefined);
     localStorage.removeItem('userLogin');
   }
 
