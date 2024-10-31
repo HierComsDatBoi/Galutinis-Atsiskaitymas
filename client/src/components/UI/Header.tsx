@@ -4,19 +4,29 @@ import UsersContext, { UsersContextTypes } from "../../contexts/UsersContext";
 import styled from "styled-components";
 
 const StyledHeader = styled.header`
-display: flex;
-justify-content: space-between;
-align-items: center;
-border-bottom: 1px solid black;
-height: 60px;
-padding: 0 30px;
->nav{
-display: flex;
-gap: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid black;
+  height: 60px;
+  padding: 0 30px;
+  background: #ffffff10;
+
+  >nav {
+    display: flex;
+    gap: 10px;
+  }
+
+  .active{
+    box-sizing: border-box;
+    background-color: #ffffff3e;
+    box-shadow: 0 -3px 0 white inset;
 }
-.active{
-border-bottom: 3px solid blue;
-}
+  
+  .userInfo{
+    display:flex;
+    gap: 10px;
+  }
 `;
 const Header = () => {
 
@@ -28,10 +38,10 @@ const Header = () => {
         <NavLink to={'/allusers'}>Users</NavLink>
         <NavLink to={'/conversations'}>Conversations</NavLink>
       </nav>
-      <div>
+      <>
         {
           userLogin ?
-            <div>
+            <div className="userInfo">
               <NavLink to={'/profile'}>{userLogin.username}</NavLink>
               <button onClick={ () => {
                 logOut();
@@ -41,7 +51,7 @@ const Header = () => {
             </div> :
             <NavLink to={''}>Not Logged In</NavLink>
         }
-      </div>
+      </>
     </StyledHeader>
   );
 }

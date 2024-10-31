@@ -2,7 +2,32 @@ import { useForm } from "react-hook-form";
 import { useContext, useState } from "react";
 import * as Yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
-import UsersContext, { UsersContextTypes, UserInfoType } from "../../contexts/UsersContext";
+import UsersContext, { UsersContextTypes } from "../../contexts/UsersContext";
+import styled from "styled-components";
+
+const StyledSection = styled.section`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  justify-items: center;
+  >div{
+    width: 80%;
+  }
+
+  p {
+    grid-column: 1 / span 2;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    >div {
+      flex-direction: column;
+      display: flex;
+    }
+  }
+`;
 
 const Profile = () => {
   const { userLogin, passwordUpdate, infoUpdate } = useContext(UsersContext) as UsersContextTypes;
@@ -11,10 +36,12 @@ const Profile = () => {
   const profileValidationSchema = Yup.object({
     profileImg: Yup.string()
       .url('Must be a valid URL')
+      .nullable()
       .notRequired(),
-    username: Yup.string()
+      username: Yup.string()
       .min(5, 'Username must be between 5 and 15 characters')
       .max(15, 'Username must be between 5 and 15 characters')
+      .nullable()
       .notRequired()
   });
 
@@ -37,8 +64,8 @@ const Profile = () => {
     formState: { errors: profileErrors, isSubmitting: isProfileSubmitting }
   } = useForm({
     defaultValues: {
-      profileImg: userLogin?.profileImg || '',
-      username: userLogin?.username || ''
+      profileImg: userLogin?.profileImg || undefined,
+      username: userLogin?.username || undefined
     },
     resolver: yupResolver(profileValidationSchema)
   });
@@ -51,7 +78,7 @@ const Profile = () => {
     resolver: yupResolver(passwordValidationSchema)
   });
 
-  const handleInfoUpdate = async (formData: Pick<UserInfoType, "username" | "profileImg">) => {
+  const handleInfoUpdate = async (formData: { profileImg?: string | null; username?: string | null }) => {
     setMessage('');
 
     const infoUpdateResponse = await infoUpdate(formData);
@@ -63,9 +90,8 @@ const Profile = () => {
     }
   };
 
-  // Updated function with error handling
-  const handlePasswordUpdate = async (formData: Pick<UserInfoType, "password">) => {
-    setMessage(''); // Clear previous errors
+  const handlePasswordUpdate = async (formData: {password?: string | null}) => {
+    setMessage('');
     const passwordUpdateResponse = await passwordUpdate(formData);
     if ('error' in passwordUpdateResponse) {
       setMessage(passwordUpdateResponse.error);
@@ -75,7 +101,8 @@ const Profile = () => {
   };
 
   return (
-    <section>
+    <StyledSection>
+      <div>
       <h2>Edit Profile</h2>
       <form onSubmit={handleProfileSubmit(handleInfoUpdate)}>
         <div>
@@ -90,8 +117,9 @@ const Profile = () => {
         </div>
         <button type="submit" disabled={isProfileSubmitting}>Save Changes</button>
       </form>
-      
-      <h2>Edit Password</h2>
+    </div>
+    <div>
+    <h2>Edit Password</h2>
       <form onSubmit={handlePasswordSubmit(handlePasswordUpdate)}>
         <div>
           <label htmlFor="password">New Password:</label>
@@ -105,9 +133,9 @@ const Profile = () => {
         </div>
         <button type="submit" disabled={isPasswordSubmitting}>Save Changes</button>
       </form>
-
+    </div>
       {message && <p>{message}</p>}
-    </section>
+    </StyledSection>
   );
 };
 
