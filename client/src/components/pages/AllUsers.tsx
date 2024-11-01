@@ -37,7 +37,7 @@ const AllUsers = () => {
       {
         allUsers.length ?
           allUsers.map(user =>
-            <div className="userListCard" onClick={() => navigate(`/users/${user._id}`)}>
+            <div className="userListCard" key={user._id} onClick={() => navigate(`/users/${user._id}`)}>
               <UserCard key={user._id} data={user} />
             </div>
           ) :
