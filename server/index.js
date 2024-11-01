@@ -4,27 +4,110 @@ import { MongoClient } from "mongodb";
 import cors from 'cors';
 import { v4 as generateID } from 'uuid';
 import bcrypt from 'bcrypt';
+import http from 'http';
+import { Server } from "socket.io";
 
 const app = express();
-const PORT = process.env.SERVER_PORT;
-const corsOptions = { origin: `http://localhost:${process.env.FRONT_PORT}` };
+const PORT = process.env.SERVER_PORT || 5500;
+const corsOptions = { 
+  origin: `http://localhost:${process.env.FRONT_PORT}`,
+  methods: ["GET", "POST", "PATCH", "DELETE"],
+  credentials: true
+};
 const DB_CONNECTION = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_CLUSTER}.${process.env.CLUSTER_ID}.mongodb.net/`;
 
 app.use(express.json());
 app.use(cors(corsOptions));
-app.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));
 
-// visu vartotoju gavimas
-app.get('/users', async (req, res) => {
-  try {
-    const client = await MongoClient.connect(DB_CONNECTION);
-    const data = await client.db('ChatApp').collection('users').find().toArray();
-    res.send(data);
-  }
-  catch (err) {
-    res.status(500).send({ error: err })
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"],
+    credentials: true
   }
 });
+
+// Define the single connection event handler
+io.on("connection", (socket) => {
+  console.log(`User connected: ${socket.id}`);
+
+  // Join a specific room
+  socket.on("join_room", (roomId) => {
+    if (roomId) {
+      socket.join(roomId);
+      console.log(`User ${socket.id} joined room ${roomId}`);
+    } else {
+      console.error("join_room event called without a valid roomId.");
+    }
+  });
+
+  // Handle room messages
+  socket.on("room_message", async ({ roomId, senderId, senderUsername, text }) => {
+    if (!roomId || !senderId || !text ) {
+      console.error("Incomplete message data received:", { roomId, senderId, text });
+      return;
+    }
+
+    const message = {
+      _id: generateID(),
+      senderId,
+      senderUsername,
+      text,
+      timestamp: new Date().toISOString(),
+      viewedBy: []
+    };
+
+    // Save message to the database
+    const client = new MongoClient(DB_CONNECTION);
+    try {
+      await client.connect();
+      const db = client.db('ChatApp');
+      const roomsCollection = db.collection('rooms');
+      
+      await roomsCollection.updateOne(
+        { _id: roomId },
+        { 
+          $push: { messages: message },
+          $set: { updatedAt: new Date().toISOString() }
+        },
+        { upsert: true }  // Create the room if it doesn't exist
+      );
+
+      // Emit the message to all users in the room
+      io.to(roomId).emit("room_message", message);
+      console.log(`Message sent to room ${roomId}:`, message);
+
+    } catch (error) {
+      console.error("Error sending message:", error);
+    } finally {
+      client.close();
+    }
+  });
+
+  // Handle disconnect event
+  socket.on("disconnect", () => {
+    console.log(`User disconnected: ${socket.id}`);
+  });
+});
+
+server.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));
+
+// Get all users
+app.get('/users', async (req, res) => {
+  const client = new MongoClient(DB_CONNECTION);
+  try {
+    await client.connect();
+    const data = await client.db('ChatApp').collection('users').find().toArray();
+    res.send(data);
+  } catch (err) {
+    res.status(500).send({ error: err });
+  } finally {
+    client.close();
+  }
+});
+
 
 // get one user
 app.get('/users/:id', async (req, res) => {

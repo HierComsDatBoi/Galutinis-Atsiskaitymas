@@ -37,6 +37,7 @@ const Header = () => {
       <nav>
         <NavLink to={'/allusers'}>Users</NavLink>
         <NavLink to={'/conversations'}>Conversations</NavLink>
+        <NavLink to={'/room/room1'}>room</NavLink>
       </nav>
       <>
         {
