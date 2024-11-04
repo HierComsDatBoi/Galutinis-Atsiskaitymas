@@ -25,8 +25,7 @@ const SpecUser = () => {
             <UserCard key={user._id} data={user} />
             {/* fetchint conversationus jeigu yra conversationu tada atvaizduot conversationus, jei ne tai mygtuka */}
             <button onClick={()=>navigate(`/chat/${id}`)}>Start Conversation</button>
-          </div>
-          :
+          </div>:
           <p>Loading...</p>
       }
     </>

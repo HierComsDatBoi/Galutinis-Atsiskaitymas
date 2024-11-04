@@ -14,7 +14,7 @@ const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentMessage, setCurrentMessage] = useState<string>('');
   const { userLogin } = useContext(UsersContext) as UsersContextTypes;
-  const { roomId } = useParams<{ roomId: string }>(); // Use roomId from URL params
+  const { conversationId } = useParams<{ conversationId: string }>(); // Use conversationId from URL params
 
   useEffect(() => {
     const newSocket = io("http://localhost:5500", {
@@ -23,12 +23,12 @@ const Chat = () => {
 
     setSocket(newSocket);
 
-    // Join the room when the socket connects
-    if (roomId) {
-      newSocket.emit("join_room", roomId);
+    // Join the conversation when the socket connects
+    if (conversationId) {
+      newSocket.emit("join_conversation", conversationId);
     }
 
-    // Listen for messages from the room
+    // Listen for messages from the conversation
     newSocket.on("receive_message", (message: Message) => {
       setMessages((prevMessages) => [...prevMessages, message]);
     });
@@ -37,7 +37,7 @@ const Chat = () => {
     return () => {
       newSocket.disconnect();
     };
-  }, [roomId]);
+  }, [conversationId]);
 
   const sendMessage = () => {
     if (socket && currentMessage && userLogin?._id) {
@@ -46,7 +46,7 @@ const Chat = () => {
         text: currentMessage,
         timestamp: new Date().toISOString(),
       };
-      socket.emit("send_message", roomId, messageData); // Send message to the room
+      socket.emit("send_message", conversationId, messageData); // Send message to the conversation
       setMessages((prev) => [...prev, messageData]); // Update local messages
       setCurrentMessage('');
     }

@@ -33,20 +33,20 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
   console.log(`User connected: ${socket.id}`);
 
-  // Join a specific room
-  socket.on("join_room", (roomId) => {
-    if (roomId) {
-      socket.join(roomId);
-      console.log(`User ${socket.id} joined room ${roomId}`);
+  // Join a specific conversation
+  socket.on("join_conversation", (conversationId) => {
+    if (conversationId) {
+      socket.join(conversationId);
+      console.log(`User ${socket.id} joined conversation ${conversationId}`);
     } else {
-      console.error("join_room event called without a valid roomId.");
+      console.error("join_conversation event called without a valid conversationId.");
     }
   });
 
-  // Handle room messages
-  socket.on("room_message", async ({ roomId, senderId, senderUsername, text }) => {
-    if (!roomId || !senderId || !text ) {
-      console.error("Incomplete message data received:", { roomId, senderId, text });
+  // Handle conversation messages
+  socket.on("conversation_message", async ({ conversationId, senderId, senderUsername, text }) => {
+    if (!conversationId || !senderId || !text ) {
+      console.error("Incomplete message data received:", { conversationId, senderId, text });
       return;
     }
 
@@ -64,20 +64,20 @@ io.on("connection", (socket) => {
     try {
       await client.connect();
       const db = client.db('ChatApp');
-      const roomsCollection = db.collection('rooms');
+      const conversationsCollection = db.collection('conversations');
       
-      await roomsCollection.updateOne(
-        { _id: roomId },
+      await conversationsCollection.updateOne(
+        { _id: conversationId },
         { 
           $push: { messages: message },
           $set: { updatedAt: new Date().toISOString() }
         },
-        { upsert: true }  // Create the room if it doesn't exist
+        { upsert: true }  // Create the conversation if it doesn't exist
       );
 
-      // Emit the message to all users in the room
-      io.to(roomId).emit("room_message", message);
-      console.log(`Message sent to room ${roomId}:`, message);
+      // Emit the message to all users in the conversation
+      io.to(conversationId).emit("conversation_message", message);
+      console.log(`Message sent to conversation ${conversationId}:`, message);
 
     } catch (error) {
       console.error("Error sending message:", error);
