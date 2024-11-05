@@ -87,9 +87,9 @@ const ChatRoomPage = () => {
 
         // Emit the message through the socket so everyone sees it
         socket.emit("conversation_message", savedMessage); // This sends the message to everyone in the room
-
+        
         // Optionally update the local messages state
-        setMessages((prev) => [...prev, savedMessage]); // Append the new message to the state
+        //setMessages((prev) => [...prev, savedMessage]); // Append the new message to the state
         setCurrentMessage(""); // Clear input field
       } else {
         console.error("Failed to send message", response);
