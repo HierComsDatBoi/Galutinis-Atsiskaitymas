@@ -9,7 +9,7 @@ import { Server } from "socket.io";
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 5500;
-const corsOptions = { 
+const corsOptions = {
   origin: `http://localhost:${process.env.FRONT_PORT}`,
   methods: ["GET", "POST", "PATCH", "DELETE"],
   credentials: true
@@ -29,70 +29,153 @@ const io = new Server(server, {
   }
 });
 
-// Define the single connection event handler
+const findOrCreateConversation = async (client, userIds) => {
+  const db = client.db('ChatApp');
+  const conversationsCollection = db.collection('conversations');
+
+  // Find an existing conversation
+  const conversation = await conversationsCollection.findOne({
+    participants: { $all: userIds, $size: userIds.length }
+  });
+
+  if (conversation) {
+    return conversation._id;  // Return the ID if the conversation exists
+  }
+
+  // Create a new conversation
+  const newConversation = {
+    _id: generateID(),
+    participants: userIds,
+  };
+
+  await conversationsCollection.insertOne(newConversation);
+  return newConversation._id;
+}
+
 io.on("connection", (socket) => {
   console.log(`User connected: ${socket.id}`);
 
-  // Join a specific conversation
   socket.on("join_conversation", (conversationId) => {
     if (conversationId) {
       socket.join(conversationId);
       console.log(`User ${socket.id} joined conversation ${conversationId}`);
     } else {
-      console.error("join_conversation event called without a valid conversationId.");
+      console.error("join_conversation called without a valid conversationId.");
     }
   });
 
-  // Handle conversation messages
-  socket.on("conversation_message", async ({ conversationId, senderId, senderUsername, text }) => {
-    if (!conversationId || !senderId || !text ) {
-      console.error("Incomplete message data received:", { conversationId, senderId, text });
-      return;
-    }
+// Handle incoming messages
+socket.on("conversation_message", async ({ conversationId, senderId, text }) => {
+  if (!conversationId || !senderId || !text) {
+    console.error("Incomplete message data received:", { conversationId, senderId, text });
+    return;
+  }
 
-    const message = {
-      _id: generateID(),
-      senderId,
-      senderUsername,
-      text,
-      timestamp: new Date().toISOString(),
-      viewedBy: []
-    };
+  const message = {
+    _id: generateID(), // Generate a unique ID for the message
+    conversationId,
+    senderId,
+    text,
+    timestamp: new Date().toISOString(),
+    viewed: false
+  };
 
-    // Save message to the database
-    const client = new MongoClient(DB_CONNECTION);
-    try {
-      await client.connect();
-      const db = client.db('ChatApp');
-      const conversationsCollection = db.collection('conversations');
-      
-      await conversationsCollection.updateOne(
-        { _id: conversationId },
-        { 
-          $push: { messages: message },
-          $set: { updatedAt: new Date().toISOString() }
-        },
-        { upsert: true }  // Create the conversation if it doesn't exist
-      );
+  io.to(conversationId).emit("conversation_message", message);
+  console.log(`Message sent to conversation ${conversationId}:`, message);
+});
 
-      // Emit the message to all users in the conversation
-      io.to(conversationId).emit("conversation_message", message);
-      console.log(`Message sent to conversation ${conversationId}:`, message);
-
-    } catch (error) {
-      console.error("Error sending message:", error);
-    } finally {
-      client.close();
-    }
-  });
-
-  // Handle disconnect event
-  socket.on("disconnect", () => {
-    console.log(`User disconnected: ${socket.id}`);
-  });
 });
 
 server.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));
+
+
+// Create or get a conversation
+app.post('/conversations/start', async (req, res) => {
+  const { userIds } = req.body;
+
+  const client = new MongoClient(DB_CONNECTION);
+  try {
+    await client.connect();
+    const conversationId = await findOrCreateConversation(client, userIds);
+    res.status(200).json({ conversationId });
+  } catch (error) {
+    console.error("Error finding/creating conversation:", error);
+    res.status(500).send({ error: "Failed to start conversation" });
+  } finally {
+    client.close();
+  }
+});
+
+// Endpoint to post a new message !!!!!!!!!!!!!sitas siunciasi i db
+app.post('/conversations/:conversationId/messages', async (req, res) => {
+  const { conversationId } = req.params;
+  const { text, senderId } = req.body;
+  const message = {
+    _id: generateID(),
+    conversationId,
+    senderId,
+    text,
+    timestamp: new Date().toISOString(),
+    viewed: false
+  };
+
+  const client = new MongoClient(DB_CONNECTION);
+  try {
+    await client.connect();
+    const db = client.db('ChatApp');
+    await db.collection('messages').insertOne(message);
+    res.status(201).json(message);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to send message' });
+  } finally {
+    client.close();
+  }
+});
+
+// Retrieve messages for a conversation
+app.get('/conversations/:conversationId/messages', async (req, res) => {
+  const { conversationId } = req.params;
+  const client = new MongoClient(DB_CONNECTION);
+
+  try {
+    await client.connect();
+    const messagesCollection = client.db('ChatApp').collection('messages');
+    const usersCollection = client.db('ChatApp').collection('users');
+
+    const messages = await messagesCollection.aggregate([
+      { $match: { conversationId } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'senderId',
+          foreignField: '_id',
+          as: 'senderInfo'
+        }
+      },
+      { $unwind: '$senderInfo' }, // Deconstruct array to objects
+      {
+        $project: {
+          _id: 1,
+          text: 1,
+          timestamp: 1,
+          senderId: 1,
+          'senderUsername': '$senderInfo.username',
+          'senderProfileImg': '$senderInfo.profileImg'
+        }
+      },
+      { $sort: { timestamp: 1 } }
+    ]).toArray();
+
+    res.status(200).json(messages);
+  } catch (error) {
+    console.error("Failed to fetch messages:", error);
+    res.status(500).json({ error: "Failed to fetch messages" });
+  } finally {
+    client.close();
+  }
+});
+
+
 
 // Get all users
 app.get('/users', async (req, res) => {
