@@ -10,6 +10,7 @@ interface Message {
   senderProfileImg: string;
   text: string;
   timestamp: string;
+  liked:boolean;
 }
 
 const socket: Socket = io("http://localhost:5500", {
@@ -64,6 +65,33 @@ const ChatRoomPage = () => {
     }
   }, [conversationId]);
 
+  const updateLikedMessage = async (id:string,liked:boolean) =>{
+    
+    try {
+      const response = await fetch(`http://localhost:5500/conversations/${conversationId}/messages/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ liked: liked }),
+      });
+
+      if (response.ok) {
+        const liked = await response.json();
+        const message = messages.find(e => e._id === id);
+        if (message) {
+          const updatedMessages = messages.map(e => 
+            e._id === id ? { ...e, liked: liked } : e
+          );
+          setMessages(updatedMessages);
+        }
+
+      }else{
+        console.error("Failed to send message", response);
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
+  }
+
   const sendMessage = async () => {
     if (!currentMessage.trim() || !userLogin || !conversationId) return;
 
@@ -73,6 +101,7 @@ const ChatRoomPage = () => {
       senderProfileImg: userLogin.profileImg,
       text: currentMessage,
       timestamp: new Date().toISOString(),
+      liked:false
     };
 
     try {
@@ -87,9 +116,6 @@ const ChatRoomPage = () => {
 
         // Emit the message through the socket so everyone sees it
         socket.emit("conversation_message", savedMessage); // This sends the message to everyone in the room
-        
-        // Optionally update the local messages state
-        //setMessages((prev) => [...prev, savedMessage]); // Append the new message to the state
         setCurrentMessage(""); // Clear input field
       } else {
         console.error("Failed to send message", response);
@@ -112,7 +138,7 @@ const ChatRoomPage = () => {
             key={msg._id}
             className={`message ${msg.senderId === userLogin?._id ? "my-message" : "other-message"}`}
           >
-            <p><strong>{msg.senderUsername}</strong>: {msg.text}</p>
+            <p><strong>{msg.senderUsername}</strong>: {msg.text}<button onClick={()=>updateLikedMessage(msg._id,!msg.liked)}>{!msg.liked?"Like":"Unlike"}</button></p>
             <span className="timestamp">{new Date(msg.timestamp).toLocaleTimeString()}</span>
           </div>
         ))}

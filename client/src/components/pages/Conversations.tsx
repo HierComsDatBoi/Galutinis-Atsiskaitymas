@@ -10,6 +10,9 @@ width: 200px;
 }
 `;
 
+
+// fetch user info , no aggreg, f that
+
 const Conversations = () => {
 
   const { allUsers } = useContext(UsersContext) as UsersContextTypes;

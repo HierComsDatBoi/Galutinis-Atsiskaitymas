@@ -116,7 +116,8 @@ app.post('/conversations/:conversationId/messages', async (req, res) => {
     senderId,
     text,
     timestamp: new Date().toISOString(),
-    viewed: false
+    viewed: false,
+    liked:false
   };
 
   const client = new MongoClient(DB_CONNECTION);
@@ -125,6 +126,27 @@ app.post('/conversations/:conversationId/messages', async (req, res) => {
     const db = client.db('ChatApp');
     await db.collection('messages').insertOne(message);
     res.status(201).json(message);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to send message' });
+  } finally {
+    client.close();
+  }
+});
+
+// Endpoint to PUT message (atnaujinti esancia zinute)
+app.post('/conversations/:conversationId/messages/:id', async (req, res) => {
+  const { conversationId,id } = req.params;
+  const { liked } = req.body;
+
+  const client = new MongoClient(DB_CONNECTION);
+  try {
+    await client.connect();
+    const db = client.db('ChatApp');
+    await db.collection('messages').updateOne(
+      { _id: id },
+      { $set: { liked: liked } } 
+    );
+    res.status(201).json(liked);
   } catch (error) {
     res.status(500).json({ error: 'Failed to send message' });
   } finally {
@@ -159,6 +181,7 @@ app.get('/conversations/:conversationId/messages', async (req, res) => {
           text: 1,
           timestamp: 1,
           senderId: 1,
+          liked: 1,
           'senderUsername': '$senderInfo.username',
           'senderProfileImg': '$senderInfo.profileImg'
         }
