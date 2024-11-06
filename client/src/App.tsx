@@ -17,7 +17,7 @@ const App = () => {
       <Route path="" element={<MainOutlet/>}>
         <Route path='users/:id' element={<SpecUser />} />
         <Route path='allusers' element={<AllUsers />} />
-        <Route path='conversations' element={<Conversations />} />
+        <Route path='/conversations/:logedinUserId' element={<Conversations />} />
         <Route path='profile' element={<Profile />} />
         <Route path='/chat/:conversationId' element={<ChatRoomPage />} />
       </Route>

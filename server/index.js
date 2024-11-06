@@ -88,8 +88,55 @@ socket.on("conversation_message", async ({ conversationId, senderId, text }) => 
 
 server.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));
 
+//get conversations with logedin user id
+app.get('/conversations/:logedinUserId', async (req, res) => {
+  const loggedInUserId = req.params.logedinUserId;
 
-// Create or get a conversation
+  const client = new MongoClient(DB_CONNECTION);
+  try {
+    await client.connect();
+    const db = client.db('ChatApp');
+    const conversationsCollection = db.collection('conversations');
+    const usersCollection = db.collection('users');
+  
+    const conversations = await conversationsCollection.aggregate([
+      // Match conversations where the logged-in user is a participant
+      { 
+        $match: { participants: loggedInUserId }
+      },
+      // Look up user details based on participants
+      {
+        $lookup: {
+          from: 'users',
+          let: { participants: "$participants" }, // Using `let` to define variables in the aggregation pipeline
+          pipeline: [
+            { $match: { $expr: { $in: ["$_id", "$$participants"] } } }, // Match users who are in the participants array
+            { $match: { _id: { $ne: loggedInUserId } } } // Exclude the logged-in user from the results
+          ],
+          as: 'userInfo'
+        }
+      },
+      // Flatten the userInfo array (just the first matched user, excluding the logged-in user)
+      {
+        $project: {
+          _id: 1,
+          participants: 1,
+          userInfo: { $arrayElemAt: ["$userInfo", 0] } // Flatten userInfo to a single object
+        }
+      }
+    ]).toArray();
+
+    res.status(200).json(conversations);
+  } catch (error) {
+    console.error("Error fetching conversations:", error);
+    res.status(500).send({ error: "Failed to retrieve conversations" });
+  } finally {
+    await client.close();
+  }
+});
+
+
+// Create a conversation
 app.post('/conversations/start', async (req, res) => {
   const { userIds } = req.body;
 

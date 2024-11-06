@@ -36,7 +36,7 @@ const Header = () => {
     <StyledHeader>
       <nav>
         <NavLink to={'/allusers'}>Users</NavLink>
-        <NavLink to={'/conversations'}>Conversations</NavLink>
+        <NavLink to={`/conversations/${userLogin?._id}`}>Conversations</NavLink>
       </nav>
       <>
         {
