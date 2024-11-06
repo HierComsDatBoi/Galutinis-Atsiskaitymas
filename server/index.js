@@ -277,19 +277,24 @@ app.get('/users/:id', async (req, res) => {
 
 // username paieskos funkcija, middleware
 const findUsername = async (req, res, next) => {
+  if (!req.body.username) {
+    return next();
+  }
+
   const client = await MongoClient.connect(DB_CONNECTION);
   try {
     const checkExisting = await client.db('ChatApp').collection('users').findOne({ username: req.body.username });
     if (checkExisting) {
       res.status(409).send({ error: 'Username already exists' });
+    } else {
+      next();
     }
-    else { next(); }
-  }
-  catch (err) {
+  } catch (err) {
     console.error(err);
     res.status(500).send({ error: err });
+  } finally {
+    client?.close();
   }
-  finally { client?.close(); }
 };
 
 // vartotojo kurimas
@@ -331,7 +336,7 @@ app.post('/users/login', async (req, res) => {
 });
 
 // user info editas
-app.patch('/users/:id', async (req, res) => {
+app.patch('/users/:id', findUsername, async (req, res) => {
   const client = await MongoClient.connect(DB_CONNECTION);
   const { id } = req.params;
   const updateFields = { ...req.body };
