@@ -81,12 +81,21 @@ const Profile = () => {
   const handleInfoUpdate = async (formData: { profileImg?: string | null; username?: string | null }) => {
     setMessage('');
 
-    const infoUpdateResponse = await infoUpdate(formData);
+    const payload: { profileImg?: string | null; username?: string | null } = {
+      profileImg: formData.profileImg,
+    };
+    if (formData.username && formData.username !== userLogin?.username) {
+      payload.username = formData.username;
+    }
+
+    const infoUpdateResponse = await infoUpdate(payload);
+    console.log(payload);
 
     if ('error' in infoUpdateResponse) {
       setMessage(infoUpdateResponse.error);
     } else {
       setMessage(infoUpdateResponse.success);
+
     }
   };
 

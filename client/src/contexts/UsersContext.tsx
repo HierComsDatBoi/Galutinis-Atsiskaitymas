@@ -141,6 +141,19 @@ const UsersProvider = ({ children }: ChildProp) => {
       if (!res.ok) {
         return { error: result.error || 'Profile update failed' };
       } else {
+        setUserLogin((prevUser) => {
+          if (!prevUser) return undefined;
+          return {
+            ...prevUser,
+            username: formData.username || prevUser.username,
+            profileImg: formData.profileImg || prevUser.profileImg,
+          };
+        });
+        localStorage.setItem('userLogin', JSON.stringify({
+          ...userLogin,
+          username: formData.username || userLogin?.username,
+          profileImg: formData.profileImg || userLogin?.profileImg,
+        }));
         return { success: 'Profile updated successfully' };
       }
     } catch (error) {
