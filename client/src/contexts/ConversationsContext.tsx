@@ -44,7 +44,7 @@ export const ConversationsProvider = ({ children }: { children: ReactNode }) => 
 
       if (!response.ok) throw new Error('Failed to delete conversation');
 
-      // Remove the deleted conversation from state
+      // Remove conversation from state
       setConversations((prevConversations) =>
         prevConversations.filter((conv) => conv._id !== conversationId)
       );

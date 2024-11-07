@@ -28,9 +28,7 @@ const StyledSection = styled.section`
 `;
 
 const AllUsers = () => {
-
   const { allUsers } = useContext(UsersContext) as UsersContextTypes;
-  // console.log(allUsers);
   const navigate = useNavigate();
   return (
     <StyledSection>

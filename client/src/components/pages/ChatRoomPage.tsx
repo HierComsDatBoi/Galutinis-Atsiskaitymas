@@ -15,7 +15,11 @@ const StyledContainer = styled.div`
   h2 {
     margin-bottom: 1rem;
   }
-
+    .time-like-div{
+    display: flex;
+    gap: 7px;
+    
+    }
   .message-container {
     display: flex;
     flex-direction: column;
@@ -141,6 +145,13 @@ const ChatRoomPage = () => {
 
       socket.on("conversation_message", handleIncomingMessage);
 
+      socket.on("like_message", (updatedMessage) => {
+        setMessages(prevMessages => prevMessages.map(msg =>
+          msg._id === updatedMessage._id ? updatedMessage : msg
+        ));
+      });
+      
+
       return () => {
         socket.off("conversation_message", handleIncomingMessage);
         socket.emit("leave_conversation", conversationId);
@@ -149,6 +160,15 @@ const ChatRoomPage = () => {
       console.error("Conversation ID is missing!");
     }
   }, [conversationId]);
+
+  const handleLikeToggle = (messageId: string, currentLikeState: boolean) => {
+    const updatedMessages = messages.map(msg =>
+      msg._id === messageId ? { ...msg, liked: !currentLikeState } : msg
+    );
+    setMessages(updatedMessages);
+
+    socket.emit("like_message", {conversationId, messageId, liked: !currentLikeState });
+  };
 
   useEffect(() => {
     scrollToBottom();
@@ -193,6 +213,7 @@ const ChatRoomPage = () => {
           msg={msg}
           userLogin={userLogin}
           otherUserInfo={otherUserInfo}
+          onLikeToggle={handleLikeToggle}
         />
         ))}
         <div className="hiddenDiv" ref={messageEndRef} />

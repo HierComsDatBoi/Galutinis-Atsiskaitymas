@@ -45,7 +45,7 @@ const Header = () => {
           userLogin ?
             <div className="userInfo">
               <NavLink to={'/profile'}>{userLogin.username}</NavLink>
-              <button onClick={ () => {
+              <button onClick={() => {
                 logOut();
                 navigate('');
               }
