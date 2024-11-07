@@ -2,6 +2,37 @@ import { useContext, useEffect, useState } from "react";
 import UsersContext, { UserInfoType, UsersContextTypes } from "../../contexts/UsersContext";
 import { useParams, useNavigate } from "react-router-dom";
 import UserCard from "../UI/UserCard";
+import styled from "styled-components";
+
+const Styledsection = styled.section`
+  >div{
+    display: flex;
+    flex-direction: column;
+    width: 50%;
+    align-items: center;
+    border: 1px solid #dbdbdb;
+    border-radius: 10px;
+    background: #ffffff20;
+    gap: 10px;
+
+    >div:last-child{
+      display:flex;
+      gap:10px;
+      margin-bottom: 10px;
+        > button{
+        width: 100px;
+      }
+    }
+
+    > div:first-child {
+      height: 200px;
+
+      > img {
+        height: 100%;
+      }
+    }
+  }
+  `;
 
 const SpecUser = () => {
   const { allUsers, specificUser, userLogin } = useContext(UsersContext) as UsersContextTypes;
@@ -40,19 +71,20 @@ const SpecUser = () => {
   };
 
   return (
-    <>
+    <Styledsection>
+        <h2>User</h2>
       {
-        user ? (
+        user ?
           <div>
-            <button onClick={() => navigate(-1)}>Back</button>
             <UserCard key={user._id} data={user} />
+            <div>
+            <button onClick={() => navigate(-1)}>Back</button>
             <button onClick={startConversation}>Chat</button>
+            </div>
           </div>
-        ) : (
-          <p>Loading...</p>
-        )
+        : <p>Loading...</p>
       }
-    </>
+    </Styledsection>
   );
 }
 

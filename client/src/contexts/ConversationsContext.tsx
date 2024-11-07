@@ -12,6 +12,7 @@ interface Conversation {
 export type ConversationsContextTypes = {
   conversations: Conversation[];
   fetchConversations: () => void;
+  deleteConversation: (conversationId: string) => void;
 };
 
 const ConversationsContext = createContext<ConversationsContextTypes | null>(null);
@@ -35,12 +36,33 @@ export const ConversationsProvider = ({ children }: { children: ReactNode }) => 
     }
   }, [userLogin]);
 
+  const deleteConversation = useCallback(async (conversationId: string) => {
+    try {
+      const response = await fetch(`http://localhost:5500/conversations/${conversationId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete conversation');
+
+      // Remove the deleted conversation from state
+      setConversations((prevConversations) =>
+        prevConversations.filter((conv) => conv._id !== conversationId)
+      );
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchConversations();
   }, [fetchConversations]);
 
   return (
-    <ConversationsContext.Provider value={{ conversations, fetchConversations }}>
+    <ConversationsContext.Provider 
+    value={{ 
+      conversations, 
+      fetchConversations, 
+      deleteConversation }}>
       {children}
     </ConversationsContext.Provider>
   );

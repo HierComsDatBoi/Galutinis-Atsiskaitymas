@@ -247,6 +247,35 @@ app.get('/conversations/:conversationId/messages', async (req, res) => {
   }
 });
 
+// conversation delete
+app.delete('/conversations/:conversationId', async (req, res) => {
+  const { conversationId } = req.params;
+  const client = new MongoClient(DB_CONNECTION);
+
+  try {
+    await client.connect();
+    const db = client.db('ChatApp');
+
+    const conversationResult = await db.collection('conversations').deleteOne({ _id: conversationId });
+
+    const messagesResult = await db.collection('messages').deleteMany({ conversationId });
+
+    if (conversationResult.deletedCount === 0) {
+      res.status(404).send({ error: 'Conversation not found' });
+    } else {
+      res.status(200).send({ message: 'Conversation and messages deleted successfully' });
+    }
+  } catch (error) {
+    console.error("Failed to delete conversation:", error);
+    res.status(500).send({ error: 'Failed to delete conversation' });
+  } finally {
+    client.close();
+  }
+});
+
+
+// user routes
+
 // Get all users
 app.get('/users', async (req, res) => {
   const client = new MongoClient(DB_CONNECTION);

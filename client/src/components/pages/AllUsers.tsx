@@ -15,6 +15,7 @@ const StyledSection = styled.section`
     border-radius: 10px;
     cursor: pointer;
     background: #ffffff20;
+    align-items: center;
 
     >div {
       height: 100px;
