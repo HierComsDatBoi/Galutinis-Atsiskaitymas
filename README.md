@@ -2,15 +2,15 @@ Programa skirta susirašinėjimui tarp dviejų vartotojų:
 
 1. Atsidarius puslapį paprašys prisijungti arba prisiregistruoti.
 2. Prisijungus, puslapio viršutinėje dalyje yra trys puslapiai: 
-  2.1 Users - galima peržiūrėti visus prisiregistravusius vartotojus:
-     2.1.1 Šiame puslapyje paspaudus ant vartotojo kortelės nukeliama į to vartotojo puslapį kuriame matoma vartotojo informacija ir yra mygtukai:
-     2.1.2 Grįžti arba pradėti/tęsti pokalbį.
-  2.2 Conversations - prisijungusio vartotojo jau pradėti pokalbiai. 
-     2.2.1 Paspaudus ant vartotojo kortelės nukeliama į pokalbio puslapį.
-     2.2.2 Delete mygtukas ištrina pokalbį ir visas žinutes.
-     2.2.3 Pradėjus arba tęsiant pokalbį galima paspausti ant žvaigždutės esančios prie datos, kad "palaikinti" žinutę.
-  2.3 Prisijungusio vartotojo vardas - jame galima pakeisti prisijungusio vartotojo informaciją ir slaptažodį.
-  2.4 Logout mygtukas - atjungia esamą vartotoją ir nukelia į prisijungimo puslapį.
+2.1 Users - galima peržiūrėti visus prisiregistravusius vartotojus:
+2.1.1 Šiame puslapyje paspaudus ant vartotojo kortelės nukeliama į to vartotojo puslapį kuriame matoma vartotojo informacija ir yra mygtukai:
+2.1.2 Grįžti arba pradėti/tęsti pokalbį.
+2.2 Conversations - prisijungusio vartotojo jau pradėti pokalbiai. 
+2.2.1 Paspaudus ant vartotojo kortelės nukeliama į pokalbio puslapį.
+2.2.2 Delete mygtukas ištrina pokalbį ir visas žinutes.
+2.2.3 Pradėjus arba tęsiant pokalbį galima paspausti ant žvaigždutės esančios prie datos, kad "palaikinti" žinutę.
+2.3 Prisijungusio vartotojo vardas - jame galima pakeisti prisijungusio vartotojo informaciją ir slaptažodį.
+2.4 Logout mygtukas - atjungia esamą vartotoją ir nukelia į prisijungimo puslapį.
 
 Paleidimo instrukcijos:
 Parsisiųsti ir išarchyvuoti .zip failą.
