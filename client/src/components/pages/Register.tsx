@@ -11,7 +11,6 @@ const Register = () => {
   const [registerMessage, setRegisterMessage] = useState('');
   const navigate = useNavigate();
 
-  // Define Yup validation schema
   const validationSchema = Yup.object({
     profileImg: Yup.string()
       .url('Must be valid URL')
@@ -30,7 +29,6 @@ const Register = () => {
       .oneOf([Yup.ref('password')], 'Passwords must match')
       .required('Required')
   });
-
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: yupResolver(validationSchema),

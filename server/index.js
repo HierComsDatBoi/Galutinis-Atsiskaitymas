@@ -33,16 +33,15 @@ const findOrCreateConversation = async (client, userIds) => {
   const db = client.db('ChatApp');
   const conversationsCollection = db.collection('conversations');
 
-  // Find an existing conversation
   const conversation = await conversationsCollection.findOne({
     participants: { $all: userIds, $size: userIds.length }
   });
 
   if (conversation) {
-    return conversation._id;  // Return the ID if the conversation exists
+    return conversation._id;
   }
 
-  // Create a new conversation
+  // Create new conversation
   const newConversation = {
     _id: generateID(),
     participants: userIds,
@@ -64,25 +63,54 @@ io.on("connection", (socket) => {
     }
   });
 
-// Handle incoming messages
-socket.on("conversation_message", async ({ conversationId, senderId, text }) => {
-  if (!conversationId || !senderId || !text) {
-    console.error("Incomplete message data received:", { conversationId, senderId, text });
-    return;
-  }
+  // Handle incoming messages
+  socket.on("conversation_message", async ({ conversationId, senderId, text }) => {
+    if (!conversationId || !senderId || !text) {
+      console.error("Incomplete message data received:", { conversationId, senderId, text });
+      return;
+    }
 
-  const message = {
-    _id: generateID(), // Generate a unique ID for the message
-    conversationId,
-    senderId,
-    text,
-    timestamp: new Date().toISOString(),
-    viewed: false
-  };
+    const message = {
+      _id: generateID(), // Generate a unique ID for the message
+      conversationId,
+      senderId,
+      text,
+      timestamp: new Date().toISOString(),
+      viewed: false
+    };
 
-  io.to(conversationId).emit("conversation_message", message);
-  console.log(`Message sent to conversation ${conversationId}:`, message);
-});
+    io.to(conversationId).emit("conversation_message", message);
+    console.log(`Message sent to conversation ${conversationId}:`, message);
+  });
+
+  socket.on("like_message", async ({ conversationId, messageId, liked }) => {
+    if (!conversationId || !messageId) {
+      console.error("Incomplete data for like_message:", { conversationId, messageId });
+      return;
+    }
+
+    // Update like status in db
+    const client = new MongoClient(DB_CONNECTION);
+    try {
+      await client.connect();
+      const db = client.db('ChatApp');
+      const result = await db.collection('messages').updateOne(
+        { _id: messageId },
+        { $set: { liked } }
+      );
+
+      if (result.matchedCount > 0) {
+        const updatedMessage = await db.collection('messages').findOne({ _id: messageId });
+
+        io.to(conversationId).emit("like_message", updatedMessage);
+        console.log(`Message ${messageId} liked status updated to ${liked}`);
+      }
+    } catch (error) {
+      console.error("Error handling like update:", error);
+    } finally {
+      client.close();
+    }
+  });
 
 });
 
@@ -98,30 +126,27 @@ app.get('/conversations/:logedinUserId', async (req, res) => {
     const db = client.db('ChatApp');
     const conversationsCollection = db.collection('conversations');
     const usersCollection = db.collection('users');
-  
+
     const conversations = await conversationsCollection.aggregate([
-      // Match conversations where the logged-in user is a participant
-      { 
+      {
         $match: { participants: loggedInUserId }
       },
-      // Look up user details based on participants
       {
         $lookup: {
           from: 'users',
-          let: { participants: "$participants" }, // Using `let` to define variables in the aggregation pipeline
+          let: { participants: "$participants" },
           pipeline: [
-            { $match: { $expr: { $in: ["$_id", "$$participants"] } } }, // Match users who are in the participants array
-            { $match: { _id: { $ne: loggedInUserId } } } // Exclude the logged-in user from the results
+            { $match: { $expr: { $in: ["$_id", "$$participants"] } } },
+            { $match: { _id: { $ne: loggedInUserId } } }
           ],
           as: 'userInfo'
         }
       },
-      // Flatten the userInfo array (just the first matched user, excluding the logged-in user)
       {
         $project: {
           _id: 1,
           participants: 1,
-          userInfo: { $arrayElemAt: ["$userInfo", 0] } // Flatten userInfo to a single object
+          userInfo: { $arrayElemAt: ["$userInfo", 0] }
         }
       }
     ]).toArray();
@@ -134,7 +159,6 @@ app.get('/conversations/:logedinUserId', async (req, res) => {
     await client.close();
   }
 });
-
 
 // Create conversation
 app.post('/conversations/start', async (req, res) => {
@@ -164,7 +188,7 @@ app.post('/conversations/:conversationId/messages', async (req, res) => {
     text,
     timestamp: new Date().toISOString(),
     viewed: false,
-    liked:false
+    liked: false
   };
 
   const client = new MongoClient(DB_CONNECTION);
@@ -180,9 +204,9 @@ app.post('/conversations/:conversationId/messages', async (req, res) => {
   }
 });
 
-// atnaujinti esancia zinute
+// update message for like
 app.post('/conversations/:conversationId/messages/:id', async (req, res) => {
-  const { conversationId,id } = req.params;
+  const { conversationId, id } = req.params;
   const { liked } = req.body;
 
   const client = new MongoClient(DB_CONNECTION);
@@ -191,11 +215,11 @@ app.post('/conversations/:conversationId/messages/:id', async (req, res) => {
     const db = client.db('ChatApp');
     await db.collection('messages').updateOne(
       { _id: id },
-      { $set: { liked: liked } } 
+      { $set: { liked: liked } }
     );
     res.status(201).json(liked);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to send message' });
+    res.status(500).json({ error: 'Failed to update message' });
   } finally {
     client.close();
   }
@@ -221,7 +245,7 @@ app.get('/conversations/:conversationId/messages', async (req, res) => {
           as: 'senderInfo'
         }
       },
-      { $unwind: '$senderInfo' }, // Deconstruct array to objects
+      { $unwind: '$senderInfo' },
       {
         $project: {
           _id: 1,
@@ -233,7 +257,7 @@ app.get('/conversations/:conversationId/messages', async (req, res) => {
           'senderProfileImg': '$senderInfo.profileImg'
         }
       },
-      { 
+      {
         $sort: { timestamp: 1 }
       }
     ]).toArray();
@@ -304,7 +328,7 @@ app.get('/users/:id', async (req, res) => {
   }
 });
 
-// username paieskos funkcija, middleware
+// username search func, middleware
 const findUsername = async (req, res, next) => {
   if (!req.body.username) {
     return next();
@@ -326,7 +350,7 @@ const findUsername = async (req, res, next) => {
   }
 };
 
-// vartotojo kurimas
+// user create
 app.post('/users', findUsername, async (req, res) => {
   const client = await MongoClient.connect(DB_CONNECTION);
   try {
@@ -342,7 +366,7 @@ app.post('/users', findUsername, async (req, res) => {
   finally { client?.close(); }
 });
 
-// loginas, randa ir grazina vartotojo duomenis prisijungimui
+// login
 app.post('/users/login', async (req, res) => {
   const client = await MongoClient.connect(DB_CONNECTION);
   try {
@@ -364,7 +388,7 @@ app.post('/users/login', async (req, res) => {
   finally { client?.close(); }
 });
 
-// user info editas
+// user info edit
 app.patch('/users/:id', findUsername, async (req, res) => {
   const client = await MongoClient.connect(DB_CONNECTION);
   const { id } = req.params;

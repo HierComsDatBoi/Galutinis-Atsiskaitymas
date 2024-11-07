@@ -16,7 +16,6 @@ const Login = () => {
   const [loginMessage, setLoginMessage] = useState('');
   const navigate = useNavigate();
 
-  // Define Yup validation schema
   const validationSchema = Yup.object({
     username: Yup.string()
       .min(5, 'Must be at between 5 and 15')
@@ -30,7 +29,6 @@ const Login = () => {
       .required('Required'),
   });
 
-  // Initialize react-hook-form with Yup resolver
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: yupResolver(validationSchema),
   });

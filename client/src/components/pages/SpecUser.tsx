@@ -46,7 +46,6 @@ const SpecUser = () => {
     }
   }, [allUsers, id, specificUser]);
 
-  // Function to start a conversation
   const startConversation = async () => {
     if (!userLogin || !id) return;
     console.log("userlogin: ", userLogin._id);
