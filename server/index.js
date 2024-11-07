@@ -136,7 +136,7 @@ app.get('/conversations/:logedinUserId', async (req, res) => {
 });
 
 
-// Create a conversation
+// Create conversation
 app.post('/conversations/start', async (req, res) => {
   const { userIds } = req.body;
 
@@ -153,7 +153,7 @@ app.post('/conversations/start', async (req, res) => {
   }
 });
 
-// Endpoint to post a new message !!!!!!!!!!!!!sitas siunciasi i db
+// Endpoint to post new message
 app.post('/conversations/:conversationId/messages', async (req, res) => {
   const { conversationId } = req.params;
   const { text, senderId } = req.body;
@@ -180,7 +180,7 @@ app.post('/conversations/:conversationId/messages', async (req, res) => {
   }
 });
 
-// Endpoint to PUT message (atnaujinti esancia zinute)
+// atnaujinti esancia zinute
 app.post('/conversations/:conversationId/messages/:id', async (req, res) => {
   const { conversationId,id } = req.params;
   const { liked } = req.body;
@@ -201,7 +201,7 @@ app.post('/conversations/:conversationId/messages/:id', async (req, res) => {
   }
 });
 
-// Retrieve messages for a conversation
+// Retrieve messages for conversation
 app.get('/conversations/:conversationId/messages', async (req, res) => {
   const { conversationId } = req.params;
   const client = new MongoClient(DB_CONNECTION);
@@ -233,7 +233,9 @@ app.get('/conversations/:conversationId/messages', async (req, res) => {
           'senderProfileImg': '$senderInfo.profileImg'
         }
       },
-      { $sort: { timestamp: 1 } }
+      { 
+        $sort: { timestamp: 1 }
+      }
     ]).toArray();
 
     res.status(200).json(messages);
@@ -244,8 +246,6 @@ app.get('/conversations/:conversationId/messages', async (req, res) => {
     client.close();
   }
 });
-
-
 
 // Get all users
 app.get('/users', async (req, res) => {

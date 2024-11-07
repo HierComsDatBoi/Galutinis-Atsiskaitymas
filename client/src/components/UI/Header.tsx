@@ -2,6 +2,7 @@ import { useContext } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import UsersContext, { UsersContextTypes } from "../../contexts/UsersContext";
 import styled from "styled-components";
+import ConversationsContext, { ConversationsContextTypes } from "../../contexts/ConversationsContext";
 
 const StyledHeader = styled.header`
   display: flex;
@@ -31,12 +32,13 @@ const StyledHeader = styled.header`
 const Header = () => {
 
   const { userLogin, logOut } = useContext(UsersContext) as UsersContextTypes;
+  const { conversations } = useContext(ConversationsContext) as ConversationsContextTypes;
   const navigate = useNavigate();
   return (
     <StyledHeader>
       <nav>
         <NavLink to={'/allusers'}>Users</NavLink>
-        <NavLink to={`/conversations/${userLogin?._id}`}>Conversations</NavLink>
+        <NavLink to={`/conversations/${userLogin?._id}`}>Conversations ( {conversations.length} )</NavLink>
       </nav>
       <>
         {
@@ -49,7 +51,7 @@ const Header = () => {
               }
               }>Logout</button>
             </div> :
-            <NavLink to={''}>Not Logged In</NavLink>
+            navigate('')
         }
       </>
     </StyledHeader>
