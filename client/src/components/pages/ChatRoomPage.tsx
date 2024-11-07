@@ -1,41 +1,126 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { io, Socket } from "socket.io-client";
+import MessageCard from "../UI/ChatMessageCard";
 import UsersContext, { UsersContextTypes } from "../../contexts/UsersContext";
+import ConversationsContext, { ConversationsContextTypes } from "../../contexts/ConversationsContext";
+import styled from "styled-components";
 
-interface Message {
+const StyledContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 100px);
+  padding: 1rem;
+
+  h2 {
+    margin-bottom: 1rem;
+  }
+
+  .message-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    overflow-y: auto;
+    flex-grow: 1;
+    padding: 1px;
+
+    &::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: none;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: #888;
+      border-radius: 10px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: #ccc; /* Thumb color on hover */
+    }
+
+    > div {
+      border: 1px solid black;
+      width: 70%;
+      border-radius: 10px;
+      
+      > div {
+        display: flex;
+        border-radius: 50%;
+        height: 75px;
+        align-items: center;
+
+        > img {
+          height: 100%;
+        }
+        > div {
+          display: flex;
+          flex-direction: column;
+        }
+      }
+    }
+  }
+
+  .input-container {
+    display: flex;
+    gap: 10px;
+    padding: 1rem 0;
+  }
+
+  .my-message {
+  align-self: flex-end;
+    background-color: #1b232e;
+  }
+
+  .other-message {
+    background-color: #2c3a4a;
+    align-self:flex-start;
+  }
+  
+  .hiddenDiv{
+    visibility: hidden;
+    height: 0;
+    padding: 0;
+  }
+`;
+
+
+export type Message = {
   _id: string;
   senderId: string;
-  senderUsername: string;
-  senderProfileImg: string;
   text: string;
   timestamp: string;
-  liked:boolean;
+  liked: boolean;
 }
 
-const socket: Socket = io("http://localhost:5500", {
-  withCredentials: true,
-});
+const socket: Socket = io("http://localhost:5500", { withCredentials: true });
 
 const ChatRoomPage = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
   const { userLogin } = useContext(UsersContext) as UsersContextTypes;
+  const { conversations } = useContext(ConversationsContext) as ConversationsContextTypes;
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentMessage, setCurrentMessage] = useState<string>("");
+  const messageEndRef = useRef<HTMLDivElement>(null);
+
+  const otherUserInfo = conversations.filter(conv => conv._id === conversationId).map(user => user.userInfo).flat();
+
+  const scrollToBottom = () => {
+    if (messageEndRef.current) {
+      messageEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   useEffect(() => {
     const fetchMessages = async () => {
       try {
         const response = await fetch(`http://localhost:5500/conversations/${conversationId}/messages`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch messages: ${response.statusText}`);
-        }
+        if (!response.ok) throw new Error(`Failed to fetch messages: ${response.statusText}`);
+
         const data = await response.json();
-        if (data) {
-          setMessages(data);
-        } else {
-          console.error("Expected messages to be an array:", data);
-        }
+        setMessages(data);
       } catch (error) {
         console.error("Error fetching messages:", error);
       }
@@ -51,99 +136,67 @@ const ChatRoomPage = () => {
       socket.emit("join_conversation", conversationId);
 
       const handleIncomingMessage = (message: Message) => {
-        setMessages((prevMessages) => [...prevMessages, message]); // Append new message
+        setMessages((prevMessages) => [...prevMessages, message]);
       };
 
       socket.on("conversation_message", handleIncomingMessage);
 
       return () => {
-        socket.off("conversation_message", handleIncomingMessage); // Clean up listener on unmount
-        socket.emit("leave_conversation", conversationId); // Leave conversation on unmount
+        socket.off("conversation_message", handleIncomingMessage);
+        socket.emit("leave_conversation", conversationId);
       };
     } else {
-      console.error("conversation ID is missing!");
+      console.error("Conversation ID is missing!");
     }
   }, [conversationId]);
 
-  const updateLikedMessage = async (id:string,liked:boolean) =>{
-    
-    try {
-      const response = await fetch(`http://localhost:5500/conversations/${conversationId}/messages/${id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ liked: liked }),
-      });
-
-      if (response.ok) {
-        const liked = await response.json();
-        const message = messages.find(e => e._id === id);
-        if (message) {
-          const updatedMessages = messages.map(e => 
-            e._id === id ? { ...e, liked: liked } : e
-          );
-          setMessages(updatedMessages);
-        }
-
-      }else{
-        console.error("Failed to send message", response);
-      }
-    } catch (error) {
-      console.error("Error sending message:", error);
-    }
-  }
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const sendMessage = async () => {
     if (!currentMessage.trim() || !userLogin || !conversationId) return;
 
-    const messageData: Omit<Message, "_id"> = {
+    const messageData = {
       senderId: userLogin._id,
-      senderUsername: userLogin.username,
-      senderProfileImg: userLogin.profileImg,
       text: currentMessage,
       timestamp: new Date().toISOString(),
-      liked:false
+      liked: false,
     };
 
     try {
       const response = await fetch(`http://localhost:5500/conversations/${conversationId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: messageData.text, senderId: messageData.senderId }),
       });
 
       if (response.ok) {
-        const savedMessage = await response.json(); // Get the saved message from the server
-
-        // Emit the message through the socket so everyone sees it
-        socket.emit("conversation_message", savedMessage); // This sends the message to everyone in the room
-        setCurrentMessage(""); // Clear input field
+        const savedMessage = await response.json();
+        socket.emit("conversation_message", savedMessage);
+        setCurrentMessage("");
       } else {
-        console.error("Failed to send message", response);
+        console.error("Failed to send message:", response.statusText);
       }
     } catch (error) {
       console.error("Error sending message:", error);
     }
   };
 
-  if (!conversationId) {
-    return <div>Conversation ID is missing. Please go back and select a valid conversation.</div>;
-  }
-
   return (
-    <div className="conversation-container">
+    <StyledContainer className="conversation-container">
       <h2>Conversation: {conversationId}</h2>
       <div className="message-container">
         {messages.map((msg) => (
-          <div
-            key={msg._id}
-            className={`message ${msg.senderId === userLogin?._id ? "my-message" : "other-message"}`}
-          >
-            <p><strong>{msg.senderUsername}</strong>: {msg.text}<button onClick={()=>updateLikedMessage(msg._id,!msg.liked)}>{!msg.liked?"Like":"Unlike"}</button></p>
-            <span className="timestamp">{new Date(msg.timestamp).toLocaleTimeString()}</span>
-          </div>
+          <MessageCard
+          key={msg._id}
+          msg={msg}
+          userLogin={userLogin}
+          otherUserInfo={otherUserInfo}
+        />
         ))}
+        <div className="hiddenDiv" ref={messageEndRef} />
       </div>
-
       <div className="input-container">
         <input
           type="text"
@@ -154,7 +207,7 @@ const ChatRoomPage = () => {
         />
         <button onClick={sendMessage}>Send</button>
       </div>
-    </div>
+    </StyledContainer>
   );
 };
 

@@ -89,13 +89,11 @@ const Profile = () => {
     }
 
     const infoUpdateResponse = await infoUpdate(payload);
-    console.log(payload);
 
     if ('error' in infoUpdateResponse) {
       setMessage(infoUpdateResponse.error);
     } else {
       setMessage(infoUpdateResponse.success);
-
     }
   };
 
